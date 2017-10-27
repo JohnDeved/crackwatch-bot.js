@@ -1,7 +1,7 @@
 const request = require('request')
 const cheerio = require('cheerio')
 const snoowrap = require('snoowrap')
-const CONFIG = require('config.js')
+const CONFIG = require('./config.json')
 
 require('console-stamp')(console, {
   pattern: 'dd/mm/yyyy HH:MM:ss.l',
@@ -41,8 +41,8 @@ const checkPreDb = callback => {
       release.age = Math.floor(timeNow - release.time)
       release.group = $(e).find('.t-g').text()
 
-      // console.log(release.age, CONFIG.timeout / 1000)
-      if (release.age <= CONFIG.timeout / 1000) {
+      // console.log(release.age, CONFIG.timeout)
+      if (release.age <= CONFIG.timeout) {
         callback(release)
       }
     })
@@ -88,16 +88,19 @@ const redditPost = release => {
   .submitSelfpost({
     title: release.title,
     text:
-`**Release Name**:${release.info.Rlsname}\n
-**Cracked by**: ${release.info.group}\n
-**Release Size**: ${release.info.size}\n
-**Release Genres**: ${release.info.genres}\n
-**Release Tags**: ${release.info.tags}\n
-**PreDB id**: ${release.id}`
+   `**Release Name**:${release.info.Rlsname}\n\n` +
+   `**Cracked by**: ${release.info.group}\n\n` +
+   `**Release Size**: ${release.info.size}\n\n` +
+   `**Release Genres**: ${release.info.genres}\n\n` +
+   `**Release Tags**: ${release.info.tags}\n\n` +
+   `**PreDB id**: ${release.id}\n\n` +
+   `**NFO file**: [link](https://johndeved.github.io/crackwatch-bot.js/#${release.info.Rlsname}) (will link to nfo image once it is available)`
 
   }).then(submission => {
+    console.info('Posted on Reddit'.green, submission.name)
     r.getSubmission(submission.name)
-    .getLinkFlairTemplates().then(flairs => {
+    .getLinkFlairTemplates()
+    .then(flairs => {
       let flair = flairs.find(e => e.flair_text === 'Release')
       if (flair !== []) {
         r.getSubmission(submission.name)
@@ -110,7 +113,7 @@ const redditPost = release => {
 const updatePreDb = () => {
   console.info('----------------------------'.grey)
   console.info('checking for new Releases'.grey)
-  console.info('(every'.grey, CONFIG.timeout / 1000, 'seconds)'.grey)
+  console.info('(every'.grey, CONFIG.timeout, 'seconds)'.grey)
   console.info('----------------------------'.grey)
   checkPreDb(release => {
     console.info('Release found:'.green, release.title.white, release.id.grey, release.href.grey)
@@ -129,5 +132,5 @@ const updatePreDb = () => {
   })
   timeout(CONFIG.timeout)
 }
-const timeout = time => setTimeout(updatePreDb, time)
+const timeout = time => setTimeout(updatePreDb, time * 1000)
 updatePreDb()
