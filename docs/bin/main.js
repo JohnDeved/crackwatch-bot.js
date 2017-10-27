@@ -8,6 +8,10 @@ if (window.location.hash !== '') {
       window.location.href = data.link_href
     }
   })
+  .fail(function (err) {
+    console.log(err)
+    $('.msg').html('nfo not available yet!')
+  })
 } else {
   window.history.back()
 }
