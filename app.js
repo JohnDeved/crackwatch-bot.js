@@ -39,7 +39,8 @@ const redditPost = release => {
   })
 }
 
-const updatePreDb = () => {
+const timeout = time => setTimeout(update, time * 1000)
+const update = () => {
   console.info('----------------------------'.grey)
   console.info('checking for new Releases'.grey)
   console.info('(every'.grey, CONFIG.timeout, 'seconds)'.grey)
@@ -61,5 +62,4 @@ const updatePreDb = () => {
   })
   timeout(CONFIG.timeout)
 }
-const timeout = time => setTimeout(updatePreDb, time * 1000)
-updatePreDb()
+update()
