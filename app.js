@@ -15,18 +15,9 @@ require('colors')
 const r = new snoowrap(CONFIG.snoowrap)
 
 const checkPreDb = callback => {
-  request.get({
-    url: 'http://predb.me/?cats=games-pc',
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36',
-      'Upgrade-Insecure-Requests': '1',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-      'Referer': 'http://predb.me/'
-    }},
-  (err, response, body) => {
+  request.get({url: 'http://predb.me/?cats=games-pc', headers: CONFIG.headers}, (err, response, body) => {
     err && console.error(err)
     response && console.info('predb.me statusCode:'.grey, response.statusCode, response.statusMessage.grey)
-    // console.log(body)
 
     const $ = cheerio.load(body)
 
@@ -41,7 +32,6 @@ const checkPreDb = callback => {
       release.age = Math.floor(timeNow - release.time)
       release.group = $(e).find('.t-g').text()
 
-      // console.log(release.age, CONFIG.timeout)
       if (release.age <= CONFIG.timeout) {
         callback(release)
       }
@@ -50,22 +40,11 @@ const checkPreDb = callback => {
 }
 
 const getPreDbinfo = (id, callback) => {
-  // http://predb.me/?post=6543345&jsload=1
-  request.get({
-    url: `http://predb.me/?post=${id}&jsload=1`,
-    headers: {
-      'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/61.0.3163.100 Safari/537.36',
-      'Upgrade-Insecure-Requests': '1',
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,image/apng,*/*;q=0.8',
-      'Referer': 'http://predb.me/'
-    }},
-  (err, response, body) => {
+  request.get({url: `http://predb.me/?post=${id}&jsload=1`, headers: CONFIG.headers}, (err, response, body) => {
     err && console.error(err)
     response && console.info('jsload statusCode:'.grey, response.statusCode, response.statusMessage.grey)
-    // console.log(body)
 
     const $ = cheerio.load(body)
-
     let info = {}
     info.Rlsname = $('.pb-c:contains(Rlsname)').next().text()
     info.group = $('.pb-c:contains(Group)').next().text()
@@ -76,8 +55,6 @@ const getPreDbinfo = (id, callback) => {
     request.get(`https://api.xrel.to/v2/release/info.json?dirname=${info.Rlsname}`, (err, response, body) => {
       info.xrel = JSON.parse(body)
       info.xrel.error && console.error('xrel error:'.red, info.xrel.error_description, info.Rlsname.grey)
-
-      // console.log(info)
       callback(info)
     })
   })
