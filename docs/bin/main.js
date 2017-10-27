@@ -3,11 +3,9 @@ if (window.location.hash !== '') {
   $.get('https://api.xrel.to/v2/release/info.json?dirname=' + hash, function (data) {
     console.log(data)
     if (data.error) {
-      console.log('nfo not available yet!')
+      $('.msg').html('nfo not available yet!')
     } else {
-      $.get(data.link_href, function (data) {
-        console.log(data)
-      })
+      window.location.href = data.link_href
     }
   })
 } else {
