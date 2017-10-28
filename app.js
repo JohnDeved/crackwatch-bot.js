@@ -24,8 +24,8 @@ const redditPost = release => {
    `**Release Tags**: ${release.info.tags}\n\n` +
    `**PreDB id**: [${release.id}](${release.href})\n\n` +
    `**NFO file**: [link](https://johndeved.github.io/crackwatch-bot.js/#${release.info.Rlsname}) (will link to nfo image once it is available)`
-
-  }).then(submission => {
+  })
+  .then(submission => {
     console.info('Posted on Reddit'.green, submission.name)
     r.getSubmission(submission.name)
     .getLinkFlairTemplates()
@@ -49,14 +49,14 @@ const update = () => {
     preDb.info(release.id, info => {
       release.info = info
       if (CONFIG.groups.indexOf(release.info.group) !== -1) {
-        if (!/(BDRip|BluRay|x264|x265|720p|1080p|HDTV)/.test(release.title)) {
+        if (!/(BDRip|BluRay|x264|x265|720p|1080p|HDTV)/i.test(release.title)) {
           redditPost(release)
         } else {
           console.error('Catmixup:'.red, release.title)
         }
       } else {
         console.error('Not allowed Group:'.red, release.info.group)
-        if (/(Assassin|Creed|Origins)/.test(release.title)) {
+        if (/(Assassin|Creed|Origins)/i.test(release.title)) {
           // if Origins post anyway ;)
           console.info('important release; bypassing group restriction'.green)
           redditPost(release)
