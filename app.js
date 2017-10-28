@@ -1,5 +1,8 @@
 const snoowrap = require('snoowrap')
-const preDb = require('./modules/crackwatch')
+const text2png = require('text2png')
+const imgurUploader = require('imgur-uploader')
+const preDb = require('./modules/preDb')
+const layer13 = require('./modules/layer13')
 const CONFIG = require('./config.json')
 
 require('console-stamp')(console, {
@@ -13,30 +16,73 @@ require('colors')
 
 const r = new snoowrap(CONFIG.snoowrap)
 const redditPost = release => {
-  r.getSubreddit('CrackWatch')
+  r.getSubreddit('testingground4bots')
   .submitSelfpost({
     title: release.title,
     text:
-   `**Release Name**:${release.info.Rlsname}\n\n` +
+   (`**Release Name**:${release.info.Rlsname}\n\n` +
    `**Cracked by**: ${release.info.group}\n\n` +
    `**Release Size**: ${release.info.size}\n\n` +
    `**Release Genres**: ${release.info.genres}\n\n` +
    `**Release Tags**: ${release.info.tags}\n\n` +
    `**PreDB id**: [${release.id}](${release.href})\n\n` +
-   `**NFO file**: [link](https://johndeved.github.io/crackwatch-bot.js/#${release.info.Rlsname}) (will link to nfo image once it is available)`
+   (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})\n\n` : '') +
+   (release.scrap13.storehref ? `**Buy**: [link](${release.scrap13.storehref})` : ''))
   })
   .then(submission => {
     console.info('Posted on Reddit'.green, submission.name)
     r.getSubmission(submission.name)
-    .getLinkFlairTemplates()
-    .then(flairs => {
-      let flair = flairs.find(e => e.flair_text === 'Release')
-      if (flair !== []) {
-        r.getSubmission(submission.name)
-        .selectFlair({flair_template_id: flair.flair_template_id})
-      }
-    })
+    // .getLinkFlairTemplates()
+    // .then(flairs => {
+    //   let flair = flairs.find(e => e.flair_text === 'Release')
+    //   if (flair !== []) {
+    //     r.getSubmission(submission.name)
+    //     .selectFlair({flair_template_id: flair.flair_template_id})
+    //   }
+    // })
   })
+}
+
+const imgurPost = release => {
+  if (release.scrap13.nfo !== '') {
+    imgurUploader(text2png(release.scrap13.nfo + `\n\n\n\nimage rendered by crackwatch-bot.js\ngithub.com/JohnDeved/crackwatch-bot.js`, CONFIG.text2png), {title: release.title}).then(data => {
+      release.imgur = data
+      console.info('Posted on Imgur'.green, release.imgur.link.grey)
+      redditPost(release)
+    })
+  } else {
+    console.log('no nfo file found; skipping imgur post'.grey, release.title.grey)
+    redditPost(release)
+  }
+}
+
+const releaseCheck = release => {
+  // console.log(release)
+  // todo: clean this up :o
+  if (['FiX', 'UPDATE'].indexOf(release.info13.section) !== -1) {
+    if (!/(x264|x265|720p|1080p)/i.test(release.title)) {
+      if (!/(Linux|MacOS)/i.test(release.title)) {
+        if (CONFIG.groups.indexOf(release.info.group) !== -1) {
+          imgurPost(release)
+        } else {
+          console.error('disallowed Release Group:'.red, release.info.group)
+
+          // maybe scrap uncracked denuvo games from wikipedia or other sites?
+          if (/(Assassin|Creed|Origins)/i.test(release.title)) {
+            // if Origins post anyway ;)
+            console.info('important release; bypassing group restriction'.green)
+            imgurPost(release)
+          }
+        }
+      } else {
+        console.error('disallowed Platform:'.red, release.title)
+      }
+    } else {
+      console.error('Somebody that isnt me fucked up (catmixup):'.red, release.title)
+    }
+  } else {
+    console.error('Fix, Update or Patch Releases are Not allowed:'.red, release.title)
+  }
 }
 
 const update = () => {
@@ -48,26 +94,13 @@ const update = () => {
     console.info('Release found:'.green, release.title.white, release.id.grey, release.href.grey)
     preDb.info(release.id, info => {
       release.info = info
-      if (!/(BDRip|BluRay|x264|x265|720p|1080p|HDTV|)/i.test(release.title)) {
-        if (!/(Linux|MacOS)/i.test(release.title)) {
-          if (CONFIG.groups.indexOf(release.info.group) !== -1) {
-            redditPost(release)
-          } else {
-            console.error('disallowed Release Group:'.red, release.info.group)
-
-            // maybe scrap uncracked denuvo games from wikipedia or other sites?
-            if (/(Assassin|Creed|Origins)/i.test(release.title)) {
-              // if Origins post anyway ;)
-              console.info('important release; bypassing group restriction'.green)
-              redditPost(release)
-            }
-          }
-        } else {
-          console.error('disallowed Platform:'.red, release.title)
-        }
-      } else {
-        console.error('Catmixup:'.red, release.title)
-      }
+      layer13.lookup(release.title, info13 => {
+        release.info13 = info13
+        layer13.scrap(release.info13.id, scrap13 => {
+          release.scrap13 = scrap13
+          releaseCheck(release)
+        })
+      })
     })
   })
 }
