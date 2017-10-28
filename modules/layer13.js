@@ -1,4 +1,5 @@
 const request = require('request')
+const cheerio = require('cheerio')
 const CONFIG = require('../config.json')
 
 const Layer13 = class {
@@ -17,6 +18,27 @@ const Layer13 = class {
         if (data.error) { return console.error(data) }
         data.href = `https://layer13.net/rls?id=${data.id}`
         callback(data)
+      })
+    }
+
+    this.scrap = (id, callback) => {
+      request.get(`https://layer13.net/rls?id=${id}`, (err, response, body) => {
+        if (err) { return console.error(err) }
+        response && console.info('layer13 rlspage statusCode:'.grey, response.statusCode, response.statusMessage.grey)
+
+        const $ = cheerio.load(body)
+        if ($('html') === null) { return console.error('Cheerio failed to load Html') }
+
+        let scrap = {}
+        let a = $('.page-header h6').next()
+        if (/anonym\.to/i.test(a.attr('href'))) {
+          scrap.storehref = a.attr('href').match(/http:\/\/anonym\.to\/\?(.+)/i)[1]
+          if (/steampowered\.com\/app\//i.test(scrap.storehref)) {
+            scrap.steamid = scrap.storehref.match(/\/app\/(\d+)/)[1]
+          }
+        }
+        scrap.nfo = $('pre.nfo').first().text()
+        callback(scrap)
       })
     }
 
