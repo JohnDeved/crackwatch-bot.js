@@ -39,7 +39,6 @@ const redditPost = release => {
   })
 }
 
-const timeout = time => setTimeout(update, time * 1000)
 const update = () => {
   console.info('----------------------------'.grey)
   console.info('checking for new Releases'.grey)
@@ -57,9 +56,14 @@ const update = () => {
         }
       } else {
         console.error('Not allowed Group:'.red, release.info.group)
+        if (/(Assassin|Creed|Origins)/.test(release.title)) {
+          // if Origins post anyway ;)
+          console.info('important release; bypassing group restriction'.green)
+          redditPost(release)
+        }
       }
     })
   })
-  timeout(CONFIG.timeout)
 }
+setInterval(update, CONFIG.timeout * 1000)
 update()
