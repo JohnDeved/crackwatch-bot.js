@@ -5,7 +5,7 @@ const Layer13 = class {
   constructor () {
     this.lookup = (title, callback) => {
       request.get(`http://api.layer13.net/v1/?getpre=${title}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
-        err && console.error(err)
+        if (err) { return console.error(err) }
         response && console.info('layer13 getpre statusCode:'.grey, response.statusCode, response.statusMessage.grey)
 
         let data
@@ -21,7 +21,7 @@ const Layer13 = class {
 
     this.listfiles = (id, callback) => {
       request.get(`http://api.layer13.net/v1//?listfiles=${id}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
-        err && console.error(err)
+        if (err) { return console.error(err) }
         response && console.info('layer13 listfiles statusCode:'.grey, response.statusCode, response.statusMessage.grey)
 
         let data
@@ -37,7 +37,7 @@ const Layer13 = class {
 
     this.getfile = (id, filename, callback) => {
       request.get(`http://api.layer13.net/v1//?getfile=${id}&filename=${filename}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
-        err && console.error(err)
+        if (err) { return console.error(err) }
         response && console.info('layer13 getfile statusCode:'.grey, response.statusCode, response.statusMessage.grey)
         callback(body)
       })
@@ -45,7 +45,7 @@ const Layer13 = class {
 
     this.getfilessize = (id, filename, callback) => {
       request.get(`http://api.layer13.net/v1//?getfilessize=${id}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
-        err && console.error(err)
+        if (err) { return console.error(err) }
         response && console.info('layer13 getfile statusCode:'.grey, response.statusCode, response.statusMessage.grey)
         callback(body)
       })
