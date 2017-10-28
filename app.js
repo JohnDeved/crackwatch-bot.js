@@ -45,7 +45,7 @@ const redditPost = release => {
 
 const imgurPost = release => {
   if (release.scrap13.nfo !== '') {
-    imgurUploader(text2png(release.scrap13.nfo + `\n\n\n\nimage rendered by crackwatch-bot.js\ngithub.com/JohnDeved/crackwatch-bot.js`, CONFIG.text2png), {title: release.title}).then(data => {
+    imgurUploader(text2png(release.scrap13.nfo + `\n\n\n\nnfo image rendered by crackwatch-bot.js\n-github.com/JohnDeved/crackwatch-bot.js`, CONFIG.text2png), {title: release.title}).then(data => {
       release.imgur = data
       console.info('Posted on Imgur'.green, release.imgur.link.grey)
       redditPost(release)
