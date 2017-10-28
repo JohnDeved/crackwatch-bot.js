@@ -48,19 +48,25 @@ const update = () => {
     console.info('Release found:'.green, release.title.white, release.id.grey, release.href.grey)
     preDb.info(release.id, info => {
       release.info = info
-      if (CONFIG.groups.indexOf(release.info.group) !== -1) {
-        if (!/(BDRip|BluRay|x264|x265|720p|1080p|HDTV)/i.test(release.title)) {
-          redditPost(release)
+      if (!/(BDRip|BluRay|x264|x265|720p|1080p|HDTV|)/i.test(release.title)) {
+        if (!/(Linux|MacOS)/i.test(release.title)) {
+          if (CONFIG.groups.indexOf(release.info.group) !== -1) {
+            redditPost(release)
+          } else {
+            console.error('disallowed Release Group:'.red, release.info.group)
+
+            // maybe scrap uncracked denuvo games from wikipedia or other sites?
+            if (/(Assassin|Creed|Origins)/i.test(release.title)) {
+              // if Origins post anyway ;)
+              console.info('important release; bypassing group restriction'.green)
+              redditPost(release)
+            }
+          }
         } else {
-          console.error('Catmixup:'.red, release.title)
+          console.error('disallowed Platform:'.red, release.title)
         }
       } else {
-        console.error('Not allowed Group:'.red, release.info.group)
-        if (/(Assassin|Creed|Origins)/i.test(release.title)) {
-          // if Origins post anyway ;)
-          console.info('important release; bypassing group restriction'.green)
-          redditPost(release)
-        }
+        console.error('Catmixup:'.red, release.title)
       }
     })
   })
