@@ -14,7 +14,8 @@ const Layer13 = class {
         } catch (error) {
           return {error: 'json parse fail'}
         }
-        data.error && console.error(data)
+        if (data.error) { return console.error(data) }
+        data.href = `https://layer13.net/rls?id=${data.id}`
         callback(data)
       })
     }
@@ -30,7 +31,7 @@ const Layer13 = class {
         } catch (error) {
           return {error: 'json parse fail'}
         }
-        data.error && console.error(data)
+        if (data.error) { return console.error(data) }
         callback(data)
       })
     }
