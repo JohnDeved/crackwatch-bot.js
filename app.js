@@ -16,7 +16,7 @@ require('colors')
 
 const r = new snoowrap(CONFIG.snoowrap)
 const redditPost = release => {
-  r.getSubreddit('testingground4bots')
+  r.getSubreddit('CrackWatch')
   .submitSelfpost({
     title: release.title,
     text:
@@ -32,14 +32,14 @@ const redditPost = release => {
   .then(submission => {
     console.info('Posted on Reddit'.green, submission.name)
     r.getSubmission(submission.name)
-    // .getLinkFlairTemplates()
-    // .then(flairs => {
-    //   let flair = flairs.find(e => e.flair_text === 'Release')
-    //   if (flair !== []) {
-    //     r.getSubmission(submission.name)
-    //     .selectFlair({flair_template_id: flair.flair_template_id})
-    //   }
-    // })
+    .getLinkFlairTemplates()
+    .then(flairs => {
+      let flair = flairs.find(e => e.flair_text === 'Release')
+      if (flair !== []) {
+        r.getSubmission(submission.name)
+        .selectFlair({flair_template_id: flair.flair_template_id})
+      }
+    })
   })
 }
 
