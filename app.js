@@ -22,7 +22,7 @@ const redditPost = release => {
    `**Release Size**: ${release.info.size}\n\n` +
    `**Release Genres**: ${release.info.genres}\n\n` +
    `**Release Tags**: ${release.info.tags}\n\n` +
-   `**PreDB id**: ${release.id}\n\n` +
+   `**PreDB id**: [${release.id}](${release.href})\n\n` +
    `**NFO file**: [link](https://johndeved.github.io/crackwatch-bot.js/#${release.info.Rlsname}) (will link to nfo image once it is available)`
 
   }).then(submission => {
