@@ -26,6 +26,7 @@ const redditPost = release => {
    `**Release Tags**: ${release.info.tags}\n\n` +
    (release.info.genres !== '' ? `**Release Genres**: ${release.info.genres}\n\n` : '') +
    `**PreDB id**: [${release.id}](${release.href})\n\n` +
+   (release.info13 ? `**Layer13 id**: [${release.info13.id}](${release.info13.href})\n\n` : '') +
    (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})\n\n` : '') +
    (release.scrap13.storehref ? `**Buy**: [link](${release.scrap13.storehref})` : ''))
   })
