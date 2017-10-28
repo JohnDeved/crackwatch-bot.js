@@ -23,8 +23,8 @@ const redditPost = release => {
    (`**Release Name**:${release.info.Rlsname}\n\n` +
    `**Cracked by**: ${release.info.group}\n\n` +
    `**Release Size**: ${release.info.size}\n\n` +
-   `**Release Genres**: ${release.info.genres}\n\n` +
    `**Release Tags**: ${release.info.tags}\n\n` +
+   (release.info.genres !== '' ? `**Release Genres**: ${release.info.genres}\n\n` : '') +
    `**PreDB id**: [${release.id}](${release.href})\n\n` +
    (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})\n\n` : '') +
    (release.scrap13.storehref ? `**Buy**: [link](${release.scrap13.storehref})` : ''))
