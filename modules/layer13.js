@@ -7,7 +7,13 @@ const Layer13 = class {
       request.get(`http://api.layer13.net/v1/?getpre=${title}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
         err && console.error(err)
         response && console.info('layer13 getpre statusCode:'.grey, response.statusCode, response.statusMessage.grey)
-        let data = JSON.parse(body)
+
+        let data
+        try {
+          data = JSON.parse(body)
+        } catch (error) {
+          return {error: 'json parse fail'}
+        }
         data.error && console.error(data)
         callback(data)
       })
@@ -17,7 +23,13 @@ const Layer13 = class {
       request.get(`http://api.layer13.net/v1//?listfiles=${id}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
         err && console.error(err)
         response && console.info('layer13 listfiles statusCode:'.grey, response.statusCode, response.statusMessage.grey)
-        let data = JSON.parse(body)
+
+        let data
+        try {
+          data = JSON.parse(body)
+        } catch (error) {
+          return {error: 'json parse fail'}
+        }
         data.error && console.error(data)
         callback(data)
       })
@@ -27,7 +39,7 @@ const Layer13 = class {
       request.get(`http://api.layer13.net/v1//?getfile=${id}&filename=${filename}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
         err && console.error(err)
         response && console.info('layer13 getfile statusCode:'.grey, response.statusCode, response.statusMessage.grey)
-        callback(data)
+        callback(body)
       })
     }
 
@@ -35,7 +47,7 @@ const Layer13 = class {
       request.get(`http://api.layer13.net/v1//?getfilessize=${id}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
         err && console.error(err)
         response && console.info('layer13 getfile statusCode:'.grey, response.statusCode, response.statusMessage.grey)
-        callback(data)
+        callback(body)
       })
     }
   }
