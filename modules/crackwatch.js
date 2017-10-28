@@ -11,21 +11,26 @@ const CrackWatch = class {
 
         const $ = cheerio.load(body)
 
-        $('.content .post').each((i, e) => {
-          let timeNow = Math.floor(Date.now() / 1000)
+        if ($('html') !== null) {
+          console.info('Cheerio successfully loaded Html'.grey)
+          $('.content .post').each((i, e) => {
+            let timeNow = Math.floor(Date.now() / 1000)
 
-          let release = {}
-          release.id = $(e).attr('id')
-          release.time = parseInt($(e).find('.p-time').attr('data'))
-          release.title = $(e).find('.p-title').text()
-          release.href = $(e).find('.p-title').attr('href')
-          release.age = Math.floor(timeNow - release.time)
-          release.group = $(e).find('.t-g').text()
+            let release = {}
+            release.id = $(e).attr('id')
+            release.time = parseInt($(e).find('.p-time').attr('data'))
+            release.title = $(e).find('.p-title').text()
+            release.href = $(e).find('.p-title').attr('href')
+            release.age = Math.floor(timeNow - release.time)
+            release.group = $(e).find('.t-g').text()
 
-          if (release.age <= CONFIG.timeout) {
-            callback(release)
-          }
-        })
+            if (release.age <= CONFIG.timeout) {
+              callback(release)
+            }
+          })
+        } else {
+          console.error('Cheerio failed to load Html'.red)
+        }
       })
     }
 
