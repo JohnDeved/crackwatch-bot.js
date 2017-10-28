@@ -2,7 +2,7 @@ const request = require('request')
 const cheerio = require('cheerio')
 const CONFIG = require('../config.json')
 
-const CrackWatch = class {
+const PreDb = class {
   constructor () {
     this.check = callback => {
       request.get({url: 'http://predb.me/?cats=games-pc', headers: CONFIG.headers}, (err, response, body) => {
@@ -57,4 +57,4 @@ const CrackWatch = class {
   }
 }
 
-module.exports = new CrackWatch()
+module.exports = new PreDb()
