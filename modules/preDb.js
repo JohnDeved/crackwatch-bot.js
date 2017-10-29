@@ -1,10 +1,11 @@
 const request = require('request')
 const cheerio = require('cheerio')
+const parseString = require('xml2js').parseString
 const CONFIG = require('../config.json')
 
 const PreDb = class {
   constructor () {
-    this.check = callback => {
+    this.checkScrap = callback => {
       request.get({url: 'http://predb.me/?cats=games-pc', headers: CONFIG.headers}, (err, response, body) => {
         if (err) { return console.error(err) }
         response && console.info('predb.me statusCode:'.grey, response.statusCode, response.statusMessage.grey)
@@ -24,7 +25,8 @@ const PreDb = class {
             release.age = Math.floor(timeNow - release.time)
             release.group = $(e).find('.t-g').text()
 
-            if (release.age <= CONFIG.timeout) {
+            if (release.age <= CONFIG.timeout && checked.indexOf(release.id) === -1) {
+              checked.push(release.id)
               callback(release)
             }
           })
@@ -34,10 +36,23 @@ const PreDb = class {
       })
     }
 
+    this.checkRss = callback => {
+      request.get({url: 'http://predb.me/?cats=games-pc&rss=1', headers: CONFIG.headers}, (err, response, body) => {
+        if (err) { return console.error(err) }
+        response && console.info('predb.me rss statusCode:'.grey, response.statusCode, response.statusMessage.grey)
+
+        parseString(body, (err, result) => {
+          if (err) { return console.error(err) }
+
+          callback(result)
+        })
+      })
+    }
+
     this.info = (id, callback) => {
       request.get({url: `http://predb.me/?post=${id}&jsload=1`, headers: CONFIG.headers}, (err, response, body) => {
         if (err) { return console.error(err) }
-        response && console.info('jsload statusCode:'.grey, response.statusCode, response.statusMessage.grey)
+        response && console.info('predb.me jsload statusCode:'.grey, response.statusCode, response.statusMessage.grey)
 
         const $ = cheerio.load(body)
         let info = {}
@@ -46,6 +61,8 @@ const PreDb = class {
         info.size = $('.pb-c:contains(Size)').next().text()
         info.genres = $('.pb-c:contains(Genres)').next().text()
         info.tags = $('.pb-c:contains(Tags)').next().text()
+
+        console.info('predb.me size:'.grey, info.size.grey)
         callback(info)
       })
     }
