@@ -13,17 +13,19 @@ require('console-stamp')(console, {
   }
 })
 require('colors')
+global.checked = []
 
-const r = new snoowrap(CONFIG.snoowrap)
+const r = new snoowrap(CONFIG.snoowrap['0'])
 const redditPost = release => {
   r.getSubreddit('CrackWatch')
   .submitSelfpost({
     title: release.title,
     text:
-   (`**Release Name**:${release.info.Rlsname}\n\n` +
+   (`**Release Name**: ${release.info.Rlsname}\n\n` +
    `**Cracked by**: ${release.info.group}\n\n` +
-   `**Release Size**: ${release.info.size}\n\n` +
-   `**Release Tags**: ${release.info.tags}\n\n` +
+   (release.info.size !== '···' ? `**Release Size**: ${release.info.size}\n\n` : '') +
+   (() => { if (release.info.size === '···' && release.scrap13.size) { return `**Release Size**: ${release.scrap13.size}\n\n` } else { return '' } })() +
+   (release.info.tags !== '···' ? `**Release Tags**: ${release.info.tags}\n\n` : '') +
    (release.info.genres !== '' ? `**Release Genres**: ${release.info.genres}\n\n` : '') +
    `**PreDB id**: [${release.id}](${release.href})\n\n` +
    (release.info13 ? `**Layer13 id**: [${release.info13.id}](${release.info13.href})\n\n` : '') +
@@ -31,7 +33,7 @@ const redditPost = release => {
    (release.scrap13.storehref ? `**Buy**: [link](${release.scrap13.storehref})` : ''))
   })
   .then(submission => {
-    console.info('Posted on Reddit'.green, submission.name)
+    console.info('Posted on Reddit'.green, submission.name.grey)
     r.getSubmission(submission.name)
     .getLinkFlairTemplates()
     .then(flairs => {
@@ -60,7 +62,7 @@ const imgurPost = release => {
 const releaseCheck = release => {
   // console.log(release)
   // todo: clean this up :o
-  if (['FiX', 'UPDATE'].indexOf(release.info13.section) !== -1) {
+  if (['FiX', 'UPDATE'].indexOf(release.info13.section) === -1) {
     if (!/(x264|x265|720p|1080p)/i.test(release.title)) {
       if (!/(Linux|MacOS)/i.test(release.title)) {
         if (CONFIG.groups.indexOf(release.info.group) !== -1) {
@@ -91,7 +93,7 @@ const update = () => {
   console.info('checking for new Releases'.grey)
   console.info('(every'.grey, CONFIG.timeout, 'seconds)'.grey)
   console.info('----------------------------'.grey)
-  preDb.check(release => {
+  preDb.checkScrap(release => {
     console.info('Release found:'.green, release.title.white, release.id.grey, release.href.grey)
     preDb.info(release.id, info => {
       release.info = info
