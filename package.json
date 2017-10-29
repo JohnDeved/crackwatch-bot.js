@@ -16,6 +16,7 @@
     "imgur-uploader": "^4.2.1",
     "request": "^2.83.0",
     "snoowrap": "^1.14.2",
-    "text2png": "^1.0.1"
+    "text2png": "^1.0.1",
+    "xml2js": "^0.4.19"
   }
 }
