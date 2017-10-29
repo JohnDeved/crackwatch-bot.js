@@ -17,7 +17,7 @@ global.checked = []
 
 const r = new snoowrap(CONFIG.snoowrap['0'])
 const redditPost = release => {
-  r.getSubreddit('CrackWatch')
+  r.getSubreddit(CONFIG.subreddit)
   .submitSelfpost({
     title: release.title,
     text:
