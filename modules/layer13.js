@@ -33,8 +33,18 @@ const Layer13 = class {
         let a = $('.page-header h6').next()
         if (/anonym\.to/i.test(a.attr('href'))) {
           scrap.storehref = a.attr('href').match(/http:\/\/anonym\.to\/\?(.+)/i)[1]
+          console.info('layer13 store:'.grey, scrap.storehref.grey)
+
           if (/steampowered\.com\/app\//i.test(scrap.storehref)) {
             scrap.steamid = scrap.storehref.match(/\/app\/(\d+)/)[1]
+          }
+        }
+        let header = $('.page-header h6').html()
+        if (/(.+?)<br>/.test(header)) {
+          header = header.match(/(.+?)<br>/)[1]
+          if (/With (.+)/.test(header)) {
+            scrap.size = header.match(/With (.+)/)[1]
+            console.info('layer13 size:'.grey, scrap.size.grey)
           }
         }
         scrap.nfo = $('pre.nfo').first().text()
