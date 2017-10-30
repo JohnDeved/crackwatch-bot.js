@@ -14,9 +14,30 @@ require('console-stamp')(console, {
 })
 require('colors')
 
+const recheckNfo = (release, count) => {
+  console.log('Rechecking for nfo', release.title)
+  layer13.scrap(release.info13.id, scrap13 => {
+    release.scrap13 = scrap13
+    imgurPost(release, release => {
+      if (release.imgur) {
+        console.log('Updating Post', release.title)
+        r.getSubmission(release.submission.name)
+        .edit(release.text + (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})` : ''))
+      } else {
+        if (count < 5) {
+          console.log('No nfo found; retry in 30sec'.grey, release.title.grey)
+          setTimeout(() => { recheckNfo(release, ++count) }, 30 * 1000)
+        } else {
+          console.log('No nfo found; timeout'.red, release.title.grey)
+        }
+      }
+    })
+  })
+}
+
 const r = new Snoowrap(CONFIG.snoowrap['0'])
 const redditPost = release => {
-  let text = (`**Release Name**: ${release.title}\n\n` +
+  release.text = (`**Release Name**: ${release.title}\n\n` +
   `**Released by**: ${release.group}\n\n` +
   (release.scrap13.size ? `**Size**: ${release.scrap13.size}\n\n` : '') +
   (release.scrap13.storehref ? `**Buy**: [link](${release.scrap13.storehref})\n\n` : '') +
@@ -26,39 +47,26 @@ const redditPost = release => {
   r.getSubreddit(CONFIG.subreddit[CONFIG.mode])
   .submitSelfpost({
     title: release.title,
-    text: text
+    text: release.text
   })
   .then(submission => {
-    console.info('Posted on Reddit'.green, submission.name.grey)
+    release.submission = submission
+    console.info('Posted on Reddit'.green, release.submission.name.grey)
 
     if (CONFIG.mode === 'live') {
-      r.getSubmission(submission.name)
+      r.getSubmission(release.submission.name)
       .getLinkFlairTemplates()
       .then(flairs => {
         let flair = flairs.find(e => e.flair_text === 'Release')
-        if (flair !== []) {
-          r.getSubmission(submission.name)
+        if (flair.flair_template_id) {
+          r.getSubmission(release.submission.name)
           .selectFlair({flair_template_id: flair.flair_template_id})
         }
       })
     }
 
     if (!release.imgur) {
-      setTimeout(() => {
-        console.log('Rechecking for nfo', release.title)
-        layer13.scrap(release.info13.id, scrap13 => {
-          release.scrap13 = scrap13
-          imgurPost(release, release => {
-            if (release.imgur) {
-              console.log('Updating Post', release.title)
-              r.getSubmission(submission.name)
-              .edit(text + (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})` : ''))
-            } else {
-              console.log('No nfo found', release.title)
-            }
-          })
-        })
-      }, 30 * 1000)
+      setTimeout(() => { recheckNfo(release, 1) }, 30 * 1000)
     }
   })
 }
@@ -71,7 +79,7 @@ const imgurPost = (release, callback) => {
       callback(release)
     })
   } else {
-    console.log('no nfo file found; skipping imgur post'.grey, release.title.grey)
+    console.log('skipping imgur post'.grey, release.title.grey)
     callback(release)
   }
 }
