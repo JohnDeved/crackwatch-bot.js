@@ -1,7 +1,7 @@
-const snoowrap = require('snoowrap')
+const irc = require('irc')
 const text2png = require('text2png')
 const imgurUploader = require('imgur-uploader')
-const preDb = require('./modules/preDb')
+const Snoowrap = require('snoowrap')
 const layer13 = require('./modules/layer13')
 const CONFIG = require('./config.json')
 
@@ -13,99 +13,125 @@ require('console-stamp')(console, {
   }
 })
 require('colors')
-global.checked = []
 
-const r = new snoowrap(CONFIG.snoowrap['0'])
+const r = new Snoowrap(CONFIG.snoowrap['0'])
 const redditPost = release => {
-  r.getSubreddit(CONFIG.subreddit)
+  let text = (`**Release Name**: ${release.title}\n\n` +
+  `**Released by**: ${release.group}\n\n` +
+  (release.scrap13.size ? `**Size**: ${release.scrap13.size}\n\n` : '') +
+  (release.scrap13.storehref ? `**Buy**: [link](${release.scrap13.storehref})\n\n` : '') +
+  (release.info13 ? `**Layer13 id**: [${release.info13.id}](${release.info13.href})\n\n` : '')) +
+  (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})` : '')
+
+  r.getSubreddit(CONFIG.subreddit[CONFIG.mode])
   .submitSelfpost({
     title: release.title,
-    text:
-   (`**Release Name**: ${release.info.Rlsname}\n\n` +
-   `**Cracked by**: ${release.info.group}\n\n` +
-   (release.info.size !== '···' ? `**Release Size**: ${release.info.size}\n\n` : '') +
-   (() => { if (release.info.size === '···' && release.scrap13.size) { return `**Release Size**: ${release.scrap13.size}\n\n` } else { return '' } })() +
-   (release.info.tags !== '···' ? `**Release Tags**: ${release.info.tags}\n\n` : '') +
-   (release.info.genres !== '' ? `**Release Genres**: ${release.info.genres}\n\n` : '') +
-   `**PreDB id**: [${release.id}](${release.href})\n\n` +
-   (release.info13 ? `**Layer13 id**: [${release.info13.id}](${release.info13.href})\n\n` : '') +
-   (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})\n\n` : '') +
-   (release.scrap13.storehref ? `**Buy**: [link](${release.scrap13.storehref})` : ''))
+    text: text
   })
   .then(submission => {
     console.info('Posted on Reddit'.green, submission.name.grey)
-    r.getSubmission(submission.name)
-    .getLinkFlairTemplates()
-    .then(flairs => {
-      let flair = flairs.find(e => e.flair_text === 'Release')
-      if (flair !== []) {
-        r.getSubmission(submission.name)
-        .selectFlair({flair_template_id: flair.flair_template_id})
-      }
-    })
+
+    if (CONFIG.mode === 'live') {
+      r.getSubmission(submission.name)
+      .getLinkFlairTemplates()
+      .then(flairs => {
+        let flair = flairs.find(e => e.flair_text === 'Release')
+        if (flair !== []) {
+          r.getSubmission(submission.name)
+          .selectFlair({flair_template_id: flair.flair_template_id})
+        }
+      })
+    }
+
+    if (!release.imgur) {
+      setTimeout(() => {
+        console.log('Rechecking for nfo', release.title)
+        layer13.scrap(release.info13.id, scrap13 => {
+          release.scrap13 = scrap13
+          imgurPost(release, release => {
+            if (release.imgur) {
+              console.log('Updating Post', release.title)
+              r.getSubmission(submission.name)
+              .edit(text + (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})` : ''))
+            } else {
+              console.log('No nfo found', release.title)
+            }
+          })
+        })
+      }, 30 * 1000)
+    }
   })
 }
 
-const imgurPost = release => {
+const imgurPost = (release, callback) => {
   if (release.scrap13.nfo !== '') {
-    imgurUploader(text2png(release.scrap13.nfo + `\n\n\n\nnfo image rendered by crackwatch-bot.js\n-github.com/JohnDeved/crackwatch-bot.js`, CONFIG.text2png), {title: release.title}).then(data => {
+    imgurUploader(text2png(release.scrap13.nfo + `\n\n\n\nnfo image rendered by crackwatch-bot.js\nwww.github.com/JohnDeved/crackwatch-bot.js`, CONFIG.text2png), {title: release.title}).then(data => {
       release.imgur = data
       console.info('Posted on Imgur'.green, release.imgur.link.grey)
-      redditPost(release)
+      callback(release)
     })
   } else {
     console.log('no nfo file found; skipping imgur post'.grey, release.title.grey)
-    redditPost(release)
+    callback(release)
   }
 }
 
-const releaseCheck = release => {
-  // console.log(release)
-  // todo: clean this up :o
-  if (['FiX', 'UPDATE'].indexOf(release.info13.section) === -1) {
-    if (!/(x264|x265|720p|1080p)/i.test(release.title)) {
-      if (!/(Linux|MacOS)/i.test(release.title)) {
-        if (CONFIG.groups.indexOf(release.info.group) !== -1) {
-          imgurPost(release)
-        } else {
-          console.error('disallowed Release Group:'.red, release.info.group)
-
-          // maybe scrap uncracked denuvo games from wikipedia or other sites?
-          if (/(Assassin|Creed|Origins)/i.test(release.title)) {
-            // if Origins post anyway ;)
-            console.info('important release; bypassing group restriction'.green)
-            imgurPost(release)
-          }
-        }
-      } else {
-        console.error('disallowed Platform:'.red, release.title)
-      }
-    } else {
-      console.error('Somebody that isnt me fucked up (catmixup):'.red, release.title)
-    }
-  } else {
-    console.error('Fix, Update or Patch Releases are Not allowed:'.red, release.title)
-  }
-}
-
-const update = () => {
-  console.info('----------------------------'.grey)
-  console.info('checking for new Releases'.grey)
-  console.info('(every'.grey, CONFIG.timeout, 'seconds)'.grey)
-  console.info('----------------------------'.grey)
-  preDb.checkScrap(release => {
-    console.info('Release found:'.green, release.title.white, release.id.grey, release.href.grey)
-    preDb.info(release.id, info => {
-      release.info = info
-      layer13.lookup(release.title, info13 => {
-        release.info13 = info13
-        layer13.scrap(release.info13.id, scrap13 => {
-          release.scrap13 = scrap13
-          releaseCheck(release)
-        })
-      })
+const finalize = release => {
+  layer13.lookup(release.title, info13 => {
+    release.info13 = info13
+    layer13.scrap(release.info13.id, scrap13 => {
+      release.scrap13 = scrap13
+      imgurPost(release, redditPost)
     })
   })
 }
-setInterval(update, CONFIG.timeout * 1000)
-update()
+
+const precheck = (from, to, message) => {
+  if (from !== CONFIG.irc.sender) { return }
+  if (to !== CONFIG.irc.channel) { return }
+  message = message.replace(/[\x02\x1F\x0F\x16]|\x03(\d\d?(,\d\d?)?)?/g, '')
+  let [, section, title, group] = message.match(/\[ PRE \] \[ ?(.+) \] - (.+-(.+))/)
+
+  let release = {
+    section: section,
+    title: title,
+    group: group
+  }
+
+  console.log('Pre:'.grey, section.grey, release.title.grey)
+
+  if (CONFIG.groups.indexOf(release.group) !== -1) {
+    console.log('Release found!'.green, release.group)
+    if (CONFIG.sections.indexOf(release.section) !== -1) {
+      console.log('Section:', release.section)
+      if (!/UPDATE/i.test(release.title)) {
+        finalize(release)
+      } else {
+        console.log('Updates are not Allowed!'.red)
+      }
+    } else {
+      console.log('Disallowed Section:'.red, section)
+    }
+  } else {
+    if (CONFIG.sections.indexOf(release.section) !== -1) {
+      if (/assassin.*creed.*origins/i.test(release.title)) {
+        console.log('Important Release found!'.green, release.group)
+        if (!/UPDATE/i.test(release.title)) {
+          finalize(release)
+        } else {
+          console.log('Updates are not Allowed!'.red)
+        }
+      }
+    } else {
+      if (CONFIG.mode === 'debug') {
+        finalize(release)
+      }
+    }
+  }
+}
+let client = new irc.Client(CONFIG.irc.server, CONFIG.irc.nickname, CONFIG.irc.options)
+client.addListener('error', message => console.log('irc error: '.red, message))
+client.addListener('registered', msg => console.log('Connected to', msg.server.green))
+client.addListener('message', precheck)
+
+console.log('Mode:', CONFIG.mode.green, 'Subreddit:', CONFIG.subreddit[CONFIG.mode], 'Reddit-User:', CONFIG.snoowrap['0'].username)
