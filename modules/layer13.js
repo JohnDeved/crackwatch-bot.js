@@ -1,6 +1,5 @@
 const request = require('request')
 const cheerio = require('cheerio')
-const CONFIG = require('../config.json')
 
 const Layer13 = class {
   constructor () {

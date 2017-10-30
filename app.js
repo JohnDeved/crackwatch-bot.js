@@ -2,10 +2,10 @@ const irc = require('irc')
 const text2png = require('text2png')
 const imgurUploader = require('imgur-uploader')
 const Snoowrap = require('snoowrap')
+const program = require('commander')
 const igdb = require('igdb-api-node').default
 const layer13 = require('./modules/layer13')
-const CONFIG = require('./config.json')
-const program = require('commander')
+global.CONFIG = require('./config/cfg.json')
 
 require('console-stamp')(console, {
   pattern: 'dd/mm/yyyy HH:MM:ss.l',
@@ -21,26 +21,29 @@ const igdbClient = igdb(CONFIG.igdb.apiKey)
 
 program.version('0.1.0')
 .option('-d --debug', 'debug mode')
+.option('-t --test', 'test mode')
 .parse(process.argv)
 
 if (program.debug) { CONFIG.mode = 'debug' }
 
 const redditText = release => {
-  return (`**Release Name**: ${release.title}\n\n` +
+  return `**Release Name**: ${release.title}\n\n` +
   `**Released by**: ${release.group}\n\n` +
   (release.scrap13.size ? `**Size**: ${release.scrap13.size.toLowerCase()}\n\n` : '') +
+  (release.os ? `**OS**: ${release.os}\n\n` : '') + '&nbsp;\n\n' +
   ((() => {
     if (release.igdb) {
       return (release.igdb.url ? `**Game Name**: ${release.igdb.name}\n\n` : '') +
+      (release.igdb.popularity ? `**Popularity**: ${release.igdb.popularity}\n\n` : '') +
       (release.igdb.videos ? `**Video**: [${release.igdb.videos[0].name}](https://www.youtube.com/watch?v=${release.igdb.videos[0].video_id})\n\n` : '') +
       (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '') +
-      (release.igdb.url ? `**IGDB**: ${release.igdb.url}\n\n` : '')
+      (release.igdb.url ? `**IGDB**: ${release.igdb.url}\n\n` : '') + '&nbsp;\n\n'
     } else {
       return (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '')
     }
   })()) +
   (release.info13 ? `**Layer13**: ${release.info13.href}\n\n` : '') +
-  (release.imgur ? `**NFO file**: ${release.imgur.link}` : ''))
+  (release.imgur ? `**NFO file**: ${release.imgur.link}` : '')
 }
 
 const recheckNfo = (release, count) => {
@@ -70,7 +73,7 @@ const redditPost = release => {
   release.text = redditText(release)
   r.getSubreddit(CONFIG.subreddit[CONFIG.mode])
   .submitSelfpost({
-    title: release.title,
+    title: (release.os ? `[${release.os}] ` : '') + release.title,
     text: release.text
   })
   .then(submission => {
@@ -122,11 +125,12 @@ const finalize = release => {
         }).then(response => {
           if (response.body.length !== 0) {
             release.igdb = response.body[0]
+            if (!release.igdb.popularity) { return console.log('game isnt popular enough! [NULL]'.red, release.igdb.url) }
+            if (release.igdb.popularity < 1.5) { return console.log(`game isnt popular enough! [${release.igdb.popularity}]`.red, release.igdb.url) }
             console.log('igdb'.green, release.igdb.url.grey)
             imgurPost(release, redditPost)
           } else {
             console.error('nothing found on igdb'.red, release.name)
-            imgurPost(release, redditPost)
           }
         }).catch(error => {
           console.error(error)
@@ -150,8 +154,17 @@ const precheck = (from, to, message) => {
     section: section,
     title: title,
     name: name,
-    group: group,
+    group: group.toUpperCase(),
     date: Date.now()
+  }
+
+  if (/\.Linux|\.MacOSX/.test(release.name)) {
+    if (/\.MacOSX/.test(release.name)) {
+      release.os = 'MacOSX'
+    } else {
+      release.os = 'Linux'
+    }
+    release.name = release.name.replace(/\.Linux|\.MacOSX/, '')
   }
 
   console.log('Pre:'.grey, section.grey, release.name.grey, release.group.grey)
@@ -179,7 +192,7 @@ const precheck = (from, to, message) => {
         }
       }
     } else {
-      if (CONFIG.mode === 'debug') {
+      if (CONFIG.mode === 'debug' && program.test) {
         finalize(release)
       }
     }
