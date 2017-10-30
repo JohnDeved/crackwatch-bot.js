@@ -150,6 +150,8 @@ const precheck = (from, to, message) => {
   if (to !== CONFIG.irc.channel) { return }
   message = message.replace(/[\x02\x1F\x0F\x16]|\x03(\d\d?(,\d\d?)?)?/g, '')
   if (/\[ NUKE \]/.test(message)) { return }
+  if (/\[ UNNUKE \]/.test(message)) { return }
+  if (!/\[ PRE \]/.test(message)) { return }
   let [, section, title, name, group] = message.match(/\[ PRE \] \[ ?(.+) \] - ((.+)-(.+))/)
 
   let release = {
