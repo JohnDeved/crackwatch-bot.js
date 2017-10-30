@@ -43,7 +43,8 @@ const redditText = release => {
     }
   })()) +
   (release.info13 ? `**Layer13**: ${release.info13.href}\n\n` : '') +
-  (release.imgur ? `**NFO file**: ${release.imgur.link}` : '')
+  (release.imgur ? `**NFO file**: ${release.imgur.link}` : '') + '\n\n&nbsp;\n\n' +
+  `^^this ^^post ^^was ^^made ^^${release.benchmark}sec ^^after ^^pre`
 }
 
 const recheckNfo = (release, count) => {
@@ -70,6 +71,8 @@ const recheckNfo = (release, count) => {
 
 const r = new Snoowrap(CONFIG.snoowrap['0'])
 const redditPost = release => {
+  release.benchmark = (Date.now() - release.date) / 1000
+  console.info(release.name.grey, 'done in'.grey, release.benchmark, 'sec'.grey)
   release.text = redditText(release)
   r.getSubreddit(CONFIG.subreddit[CONFIG.mode])
   .submitSelfpost({
@@ -79,7 +82,6 @@ const redditPost = release => {
   .then(submission => {
     release.submission = submission
     console.info('Posted on Reddit'.green, release.submission.name.grey)
-    console.info(release.name.grey, 'done in'.grey, (Date.now() - release.date) / 1000, 'sec'.grey)
 
     if (CONFIG.mode === 'live') {
       r.getSubmission(release.submission.name)
