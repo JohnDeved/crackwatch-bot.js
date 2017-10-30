@@ -4,7 +4,6 @@
   "description": "webscraping bot",
   "main": "index.js",
   "scripts": {
-    "start": "node app.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -14,6 +13,7 @@
     "colors": "^1.1.2",
     "console-stamp": "^0.2.6",
     "imgur-uploader": "^4.2.1",
+    "irc": "^0.5.2",
     "request": "^2.83.0",
     "snoowrap": "^1.14.2",
     "text2png": "^1.0.1",
