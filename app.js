@@ -2,6 +2,7 @@ const irc = require('irc')
 const text2png = require('text2png')
 const imgurUploader = require('imgur-uploader')
 const Snoowrap = require('snoowrap')
+const igdb = require('igdb-api-node').default
 const layer13 = require('./modules/layer13')
 const CONFIG = require('./config.json')
 const program = require('commander')
@@ -15,26 +16,47 @@ require('console-stamp')(console, {
 })
 require('colors')
 
-program
-.version('0.1.0')
-.option('-m --mode [mode]', 'bot mode ( live | debug )', /^(debug|live)$/i)
+const ircclient = new irc.Client(CONFIG.irc.server, CONFIG.irc.nickname, CONFIG.irc.options)
+const igdbClient = igdb(CONFIG.igdb.apiKey)
+
+program.version('0.1.0')
+.option('-d --debug', 'debug mode')
 .parse(process.argv)
 
-CONFIG.mode = program.mode || CONFIG.mode
+if (program.debug) { CONFIG.mode = 'debug' }
+
+const redditText = release => {
+  return (`**Release Name**: ${release.title}\n\n` +
+  `**Released by**: ${release.group}\n\n` +
+  (release.scrap13.size ? `**Size**: ${release.scrap13.size.toLowerCase()}\n\n` : '') +
+  ((() => {
+    if (release.igdb) {
+      return (release.igdb.url ? `**Game Name**: ${release.igdb.name}\n\n` : '') +
+      (release.igdb.videos ? `**Video**: [${release.igdb.videos[0].name}](https://www.youtube.com/watch?v=${release.igdb.videos[0].video_id})\n\n` : '') +
+      (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '') +
+      (release.igdb.url ? `**IGDB**: ${release.igdb.url}\n\n` : '')
+    } else {
+      return (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '')
+    }
+  })()) +
+  (release.info13 ? `**Layer13**: ${release.info13.href}\n\n` : '') +
+  (release.imgur ? `**NFO file**: ${release.imgur.link}` : ''))
+}
 
 const recheckNfo = (release, count) => {
-  console.log('Rechecking for nfo'.grey, release.title.grey)
+  console.log(`[${count}] Rechecking for nfo`.grey, release.title.grey)
   layer13.scrap(release.info13.id, scrap13 => {
     release.scrap13 = scrap13
     imgurPost(release, release => {
       if (release.imgur) {
         console.log('Updating Post'.green, release.title.grey)
+        release.text = redditText(release)
         r.getSubmission(release.submission.name)
-        .edit(release.text + (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})` : ''))
+        .edit(release.text)
       } else {
         if (count < 5) {
-          console.log('No nfo found; retry in 30sec'.grey, release.title.grey)
-          setTimeout(() => recheckNfo(release, ++count), 30 * 1000)
+          console.log('No nfo found; retry in 60sec'.grey, release.title.grey)
+          setTimeout(() => recheckNfo(release, ++count), 60 * 1000)
         } else {
           console.log('No nfo found; timeout'.red, release.title.grey)
         }
@@ -45,13 +67,7 @@ const recheckNfo = (release, count) => {
 
 const r = new Snoowrap(CONFIG.snoowrap['0'])
 const redditPost = release => {
-  release.text = (`**Release Name**: ${release.title}\n\n` +
-  `**Released by**: ${release.group}\n\n` +
-  (release.scrap13.size ? `**Size**: ${release.scrap13.size}\n\n` : '') +
-  (release.scrap13.storehref ? `**Buy**: [link](${release.scrap13.storehref})\n\n` : '') +
-  (release.info13 ? `**Layer13 id**: [${release.info13.id}](${release.info13.href})\n\n` : '')) +
-  (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})` : '')
-
+  release.text = redditText(release)
   r.getSubreddit(CONFIG.subreddit[CONFIG.mode])
   .submitSelfpost({
     title: release.title,
@@ -60,6 +76,7 @@ const redditPost = release => {
   .then(submission => {
     release.submission = submission
     console.info('Posted on Reddit'.green, release.submission.name.grey)
+    console.info(release.name.grey, 'done in'.grey, (Date.now() - release.date) / 1000, 'sec'.grey)
 
     if (CONFIG.mode === 'live') {
       r.getSubmission(release.submission.name)
@@ -97,7 +114,27 @@ const finalize = release => {
     release.info13 = info13
     layer13.scrap(release.info13.id, scrap13 => {
       release.scrap13 = scrap13
-      imgurPost(release, redditPost)
+      if (CONFIG.sections.indexOf(release.section) !== -1) {
+        igdbClient.games({
+          search: release.name,
+          fields: '*',
+          limit: 1
+        }).then(response => {
+          if (response.body.length !== 0) {
+            release.igdb = response.body[0]
+            console.log('igdb'.green, release.igdb.url.grey)
+            imgurPost(release, redditPost)
+          } else {
+            console.error('nothing found on igdb'.red, release.name)
+            imgurPost(release, redditPost)
+          }
+        }).catch(error => {
+          console.error(error)
+          imgurPost(release, redditPost)
+        })
+      } else {
+        imgurPost(release, redditPost)
+      }
     })
   })
 }
@@ -107,20 +144,22 @@ const precheck = (from, to, message) => {
   if (to !== CONFIG.irc.channel) { return }
   message = message.replace(/[\x02\x1F\x0F\x16]|\x03(\d\d?(,\d\d?)?)?/g, '')
   if (/\[ NUKE \]/.test(message)) { return }
-  let [, section, title, group] = message.match(/\[ PRE \] \[ ?(.+) \] - (.+-(.+))/)
+  let [, section, title, name, group] = message.match(/\[ PRE \] \[ ?(.+) \] - ((.+)-(.+))/)
 
   let release = {
     section: section,
     title: title,
-    group: group
+    name: name,
+    group: group,
+    date: Date.now()
   }
 
-  console.log('Pre:'.grey, section.grey, release.title.grey)
+  console.log('Pre:'.grey, section.grey, release.name.grey, release.group.grey)
 
   if (CONFIG.groups.indexOf(release.group) !== -1) {
     console.log('Release found!'.green, release.group)
     if (CONFIG.sections.indexOf(release.section) !== -1) {
-      console.log('Section:', release.section)
+      console.log('Section:'.green, release.section)
       if (!/UPDATE/i.test(release.title)) {
         finalize(release)
       } else {
@@ -146,9 +185,9 @@ const precheck = (from, to, message) => {
     }
   }
 }
-let client = new irc.Client(CONFIG.irc.server, CONFIG.irc.nickname, CONFIG.irc.options)
-client.addListener('error', message => console.log('irc error: '.red, message))
-client.addListener('registered', msg => console.log('Connected to', msg.server.green))
-client.addListener('message', precheck)
+ircclient.addListener('error', message => console.log('irc error: '.red, message))
+ircclient.addListener('registered', msg => console.log('Connected to', msg.server.green))
+ircclient.addListener('message', precheck)
 
 console.log('Mode:', CONFIG.mode.green, 'Subreddit:', CONFIG.subreddit[CONFIG.mode], 'Reddit-User:', CONFIG.snoowrap['0'].username)
+if (CONFIG.mode === 'debug') { precheck(CONFIG.irc.sender, CONFIG.irc.channel, CONFIG.test[Math.floor(Math.random() * CONFIG.test.length)]) }
