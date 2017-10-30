@@ -4,6 +4,7 @@ const imgurUploader = require('imgur-uploader')
 const Snoowrap = require('snoowrap')
 const layer13 = require('./modules/layer13')
 const CONFIG = require('./config.json')
+const program = require('commander')
 
 require('console-stamp')(console, {
   pattern: 'dd/mm/yyyy HH:MM:ss.l',
@@ -13,6 +14,13 @@ require('console-stamp')(console, {
   }
 })
 require('colors')
+
+program
+.version('0.1.0')
+.option('-m --mode [mode]', 'bot mode ( live | debug )', /^(debug|live)$/i)
+.parse(process.argv)
+
+CONFIG.mode = program.mode || CONFIG.mode
 
 const recheckNfo = (release, count) => {
   console.log('Rechecking for nfo'.grey, release.title.grey)
@@ -26,7 +34,7 @@ const recheckNfo = (release, count) => {
       } else {
         if (count < 5) {
           console.log('No nfo found; retry in 30sec'.grey, release.title.grey)
-          setTimeout(() => { recheckNfo(release, ++count) }, 30 * 1000)
+          setTimeout(() => recheckNfo(release, ++count), 30 * 1000)
         } else {
           console.log('No nfo found; timeout'.red, release.title.grey)
         }
@@ -66,7 +74,7 @@ const redditPost = release => {
     }
 
     if (!release.imgur) {
-      setTimeout(() => { recheckNfo(release, 1) }, 30 * 1000)
+      setTimeout(() => recheckNfo(release, 1), 30 * 1000)
     }
   })
 }

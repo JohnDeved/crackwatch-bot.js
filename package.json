@@ -4,6 +4,8 @@
   "description": "webscraping bot",
   "main": "index.js",
   "scripts": {
+    "start": "node app",
+    "debug": "node app -m debug",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "",
@@ -11,7 +13,9 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.2",
     "colors": "^1.1.2",
+    "commander": "^2.11.0",
     "console-stamp": "^0.2.6",
+    "igdb-api-node": "^3.0.2",
     "imgur-uploader": "^4.2.1",
     "irc": "^0.5.2",
     "request": "^2.83.0",
