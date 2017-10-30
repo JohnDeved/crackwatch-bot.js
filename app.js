@@ -15,12 +15,12 @@ require('console-stamp')(console, {
 require('colors')
 
 const recheckNfo = (release, count) => {
-  console.log('Rechecking for nfo', release.title)
+  console.log('Rechecking for nfo'.grey, release.title.grey)
   layer13.scrap(release.info13.id, scrap13 => {
     release.scrap13 = scrap13
     imgurPost(release, release => {
       if (release.imgur) {
-        console.log('Updating Post', release.title)
+        console.log('Updating Post'.green, release.title.grey)
         r.getSubmission(release.submission.name)
         .edit(release.text + (release.imgur ? `**NFO file**: [imgur](${release.imgur.link})` : ''))
       } else {
@@ -98,6 +98,7 @@ const precheck = (from, to, message) => {
   if (from !== CONFIG.irc.sender) { return }
   if (to !== CONFIG.irc.channel) { return }
   message = message.replace(/[\x02\x1F\x0F\x16]|\x03(\d\d?(,\d\d?)?)?/g, '')
+  if (/\[ NUKE \]/.test(message)) { return }
   let [, section, title, group] = message.match(/\[ PRE \] \[ ?(.+) \] - (.+-(.+))/)
 
   let release = {
