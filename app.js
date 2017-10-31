@@ -29,17 +29,29 @@ if (program.debug) { CONFIG.mode = 'debug' }
 const redditText = release => {
   return `**Release Name**: ${release.title}\n\n` +
   `**Released by**: ${release.group}\n\n` +
-  (release.scrap13.size ? `**Size**: ${release.scrap13.size.toLowerCase()}\n\n` : '') +
+  ((() => {
+    if (release.scrap13) {
+      return (release.scrap13.size ? `**Size**: ${release.scrap13.size.toLowerCase()}\n\n` : '')
+    } else {
+      return ''
+    }
+  })()) +
   (release.os ? `**OS**: ${release.os}\n\n` : '') + '&nbsp;\n\n' +
   ((() => {
     if (release.igdb) {
       return (release.igdb.url ? `**Game Name**: ${release.igdb.name}\n\n` : '') +
       (release.igdb.popularity ? `**Popularity**: ${release.igdb.popularity}\n\n` : '') +
       (release.igdb.videos ? `**Video**: [${release.igdb.videos[0].name}](https://www.youtube.com/watch?v=${release.igdb.videos[0].video_id})\n\n` : '') +
-      (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '') +
+      ((() => {
+        if (release.scrap13) {
+          return (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '')
+        }
+      })()) +
       (release.igdb.url ? `**IGDB**: ${release.igdb.url}\n\n` : '') + '&nbsp;\n\n'
     } else {
-      return (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '')
+      if (release.scrap13) {
+        return (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '')
+      }
     }
   })()) +
   (release.info13 ? `**Layer13**: ${release.info13.href}\n\n` : '') +
@@ -47,8 +59,8 @@ const redditText = release => {
   `^^this ^^post ^^was ^^made ^^${release.benchmark}sec ^^after ^^pre`
 }
 
-const recheckNfo = (release, count) => {
-  console.log(`[${count}] Rechecking for nfo`.grey, release.title.grey)
+const checkNfo = (release, count) => {
+  console.log(`[${count}] (Re)checking for nfo`.grey, release.title.grey)
   layer13.scrap(release.info13.id, scrap13 => {
     release.scrap13 = scrap13
     imgurPost(release, release => {
@@ -60,7 +72,7 @@ const recheckNfo = (release, count) => {
       } else {
         if (count < 5) {
           console.log('No nfo found; retry in 60sec'.grey, release.title.grey)
-          setTimeout(() => recheckNfo(release, ++count), 60 * 1000)
+          setTimeout(() => checkNfo(release, ++count), 60 * 1000)
         } else {
           console.log('No nfo found; timeout'.red, release.title.grey)
         }
@@ -96,18 +108,23 @@ const redditPost = release => {
     }
 
     if (!release.imgur) {
-      setTimeout(() => recheckNfo(release, 1), 30 * 1000)
+      layer13.lookup(release.title, info13 => {
+        release.info13 = info13
+        checkNfo(release, 1)
+      })
     }
   })
 }
 
 const imgurPost = (release, callback) => {
-  if (release.scrap13.nfo !== '') {
-    imgurUploader(text2png(release.scrap13.nfo + `\n\n\n\nnfo image rendered by\nJustSpeedy's aka JohnDev's crackwatch-bot`, CONFIG.text2png), {title: release.title}).then(data => {
-      release.imgur = data
-      console.info('Posted on Imgur'.green, release.imgur.link.grey)
-      callback(release)
-    })
+  if (release.scrap13) {
+    if (release.scrap13.nfo !== '') {
+      imgurUploader(text2png(release.scrap13.nfo + `\n\n\n\nnfo image rendered by\nJustSpeedy's aka JohnDev's crackwatch-bot`, CONFIG.text2png), {title: release.title}).then(data => {
+        release.imgur = data
+        console.info('Posted on Imgur'.green, release.imgur.link.grey)
+        callback(release)
+      })
+    }
   } else {
     console.log('skipping imgur post'.grey, release.title.grey)
     callback(release)
@@ -115,34 +132,28 @@ const imgurPost = (release, callback) => {
 }
 
 const finalize = release => {
-  layer13.lookup(release.title, info13 => {
-    release.info13 = info13
-    layer13.scrap(release.info13.id, scrap13 => {
-      release.scrap13 = scrap13
-      if (CONFIG.sections.indexOf(release.section) !== -1) {
-        igdbClient.games({
-          search: release.name,
-          fields: '*',
-          limit: 1
-        }).then(response => {
-          if (response.body.length !== 0) {
-            release.igdb = response.body[0]
-            if (!release.igdb.popularity) { return console.log('game isnt popular enough! [NULL]'.red, release.igdb.url) }
-            if (release.igdb.popularity < 1.5) { return console.log(`game isnt popular enough! [${release.igdb.popularity}]`.red, release.igdb.url) }
-            console.log('igdb'.green, release.igdb.url.grey)
-            imgurPost(release, redditPost)
-          } else {
-            console.error('nothing found on igdb'.red, release.name)
-          }
-        }).catch(error => {
-          console.error(error)
-          imgurPost(release, redditPost)
-        })
-      } else {
+  if (CONFIG.sections.indexOf(release.section) !== -1) {
+    igdbClient.games({
+      search: release.name,
+      fields: '*',
+      limit: 1
+    }).then(response => {
+      if (response.body.length !== 0) {
+        release.igdb = response.body[0]
+        if (!release.igdb.popularity) { return console.log('game isnt popular enough! [NULL]'.red, release.igdb.url) }
+        if (release.igdb.popularity < 1.5) { return console.log(`game isnt popular enough! [${release.igdb.popularity}]`.red, release.igdb.url) }
+        console.log('igdb'.green, release.igdb.url.grey)
         imgurPost(release, redditPost)
+      } else {
+        console.error('nothing found on igdb'.red, release.name)
       }
+    }).catch(error => {
+      console.error(error)
+      imgurPost(release, redditPost)
     })
-  })
+  } else {
+    imgurPost(release, redditPost)
+  }
 }
 
 const precheck = (from, to, message) => {
