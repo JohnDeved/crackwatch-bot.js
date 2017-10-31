@@ -7,12 +7,13 @@ const Layer13 = class {
       request.get(`http://api.layer13.net/v1/?getpre=${title}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
         if (err) { return console.error(err) }
         response && console.info('layer13 getpre statusCode:'.grey, response.statusCode, response.statusMessage.grey)
-
+        if (!/{.+}/.test(body)) { return console.error('no json?'.red) }
+        body = body.match(/{.+}/)[0]
         let data
         try {
           data = JSON.parse(body)
         } catch (error) {
-          return {error: 'json parse fail'}
+          return console.log(error)
         }
         if (data.error) { return console.error(data) }
         data.href = `https://layer13.net/rls?id=${data.id}`
@@ -55,12 +56,13 @@ const Layer13 = class {
       request.get(`http://api.layer13.net/v1//?listfiles=${id}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
         if (err) { return console.error(err) }
         response && console.info('layer13 listfiles statusCode:'.grey, response.statusCode, response.statusMessage.grey)
-
+        if (/{.+}/.test(body)) { console.error('no json?'.red) }
+        body = body.match(/{.+}/)[0]
         let data
         try {
           data = JSON.parse(body)
         } catch (error) {
-          return {error: 'json parse fail'}
+          return console.log(error)
         }
         if (data.error) { return console.error(data) }
         callback(data)
