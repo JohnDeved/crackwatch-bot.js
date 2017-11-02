@@ -51,11 +51,13 @@ const redditText = release => {
     } else {
       if (release.scrap13) {
         return (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '')
+      } else {
+        return ''
       }
     }
   })()) +
   (release.info13 ? `**Layer13**: ${release.info13.href}\n\n` : '') +
-  (release.imgur ? `**NFO file**: ${release.imgur.link}` : '') + '\n\n&nbsp;\n\n' +
+  (release.imgur ? `**NFO file**: [${release.title}.nfo](${release.imgur.link})` : `**NFO file**: [${release.title}.nfo](https://scnlog.eu/nfo?rls=${release.title})`) + '\n\n&nbsp;\n\n' +
   `^^this ^^post ^^was ^^made ^^${release.benchmark}sec ^^after ^^pre`
 }
 
@@ -71,7 +73,11 @@ const checkNfo = (release, count) => {
         .edit(release.text)
       } else {
         if (count < 5) {
-          console.log('No nfo found; retry in 60sec'.grey, release.title.grey)
+          console.log('No nfo found; retry in 60sec'.red, release.title.grey)
+          console.log('Updating Post'.green, release.title.grey)
+          release.text = redditText(release)
+          r.getSubmission(release.submission.name)
+          .edit(release.text)
           setTimeout(() => checkNfo(release, ++count), 60 * 1000)
         } else {
           console.log('No nfo found; timeout'.red, release.title.grey)
@@ -124,6 +130,8 @@ const imgurPost = (release, callback) => {
         console.info('Posted on Imgur'.green, release.imgur.link.grey)
         callback(release)
       })
+    } else {
+      callback(release)
     }
   } else {
     console.log('skipping imgur post'.grey, release.title.grey)
@@ -152,6 +160,7 @@ const finalize = release => {
       imgurPost(release, redditPost)
     })
   } else {
+    console.error('wrong section? you must be debugging'.red, release.section)
     imgurPost(release, redditPost)
   }
 }
@@ -208,7 +217,9 @@ const precheck = (from, to, message) => {
         }
       }
     } else {
+      if (CONFIG.done) { return }
       if (CONFIG.mode === 'debug' && program.test) {
+        CONFIG.done = true
         finalize(release)
       }
     }
@@ -219,4 +230,4 @@ ircclient.addListener('registered', msg => console.log('Connected to', msg.serve
 ircclient.addListener('message', precheck)
 
 console.log('Mode:', CONFIG.mode.green, 'Subreddit:', CONFIG.subreddit[CONFIG.mode], 'Reddit-User:', CONFIG.snoowrap['0'].username)
-if (CONFIG.mode === 'debug') { precheck(CONFIG.irc.sender, CONFIG.irc.channel, CONFIG.test[Math.floor(Math.random() * CONFIG.test.length)]) }
+if (CONFIG.mode === 'debug' && !program.test) { precheck(CONFIG.irc.sender, CONFIG.irc.channel, CONFIG.test[Math.floor(Math.random() * CONFIG.test.length)]) }
