@@ -1,7 +1,6 @@
 const request = require('request')
 const cheerio = require('cheerio')
 const parseString = require('xml2js').parseString
-const CONFIG = require('../config.json')
 
 const PreDb = class {
   constructor () {
