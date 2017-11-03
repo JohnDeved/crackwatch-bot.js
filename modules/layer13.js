@@ -5,17 +5,17 @@ const Layer13 = class {
   constructor () {
     this.lookup = (title, callback) => {
       request.get(`http://api.layer13.net/v1/?getpre=${title}&key=${CONFIG.layer13.apiKey}`, (err, response, body) => {
-        if (err) { return console.error(err) }
+        if (err) { callback(); return console.error(err) }
         response && console.info('layer13 getpre statusCode:'.grey, response.statusCode, response.statusMessage.grey)
-        if (!/{.+}/.test(body)) { return console.error('no json?'.red) }
+        if (!/{.+}/.test(body)) { callback(); return console.error('no json?'.red) }
         body = body.match(/{.+}/)[0]
         let data
         try {
           data = JSON.parse(body)
         } catch (error) {
-          return console.log(error)
+          callback(); return console.log(error)
         }
-        if (data.error) { return console.error(data) }
+        if (data.error) { callback(); return console.error(data) }
         data.href = `https://layer13.net/rls?id=${data.id}`
         callback(data)
       })
@@ -23,11 +23,11 @@ const Layer13 = class {
 
     this.scrap = (id, callback) => {
       request.get(`https://layer13.net/rls?id=${id}`, (err, response, body) => {
-        if (err) { return console.error(err) }
+        if (err) { callback(); return console.error(err) }
         response && console.info('layer13 rlspage statusCode:'.grey, response.statusCode, response.statusMessage.grey)
 
         const $ = cheerio.load(body)
-        if ($('html') === null) { return console.error('Cheerio failed to load Html') }
+        if ($('html') === null) { callback(); return console.error('Cheerio failed to load Html') }
 
         let scrap = {}
         let a = $('.page-header h6').next()

@@ -6,17 +6,17 @@ const SrrDb = class {
   constructor () {
     this.nfo = (title, callback) => {
       request('https://www.srrdb.com/release/details/' + title, (err, response, body) => {
-        if (err) { return console.error(err) }
+        if (err) { callback(); return console.error(err) }
         response && console.info('srrdb details statusCode:'.grey, response.statusCode, response.statusMessage.grey)
 
         const $ = cheerio.load(body)
-        if ($('html') === null) { return console.error('Cheerio failed to load Html') }
+        if ($('html') === null) { callback(); return console.error('Cheerio failed to load Html') }
         let url = $('.icon-nfo').first().parent().next().attr('href')
 
-        if (url === '' || !url) { return callback() }
+        if (url === '' || !url) { callback(); return callback() }
 
         request('https://www.srrdb.com' + url, {encoding: null}, (err, response, body) => {
-          if (err) { return console.error(err) }
+          if (err) { callback(); return console.error(err) }
           response && console.info('srrdb download statusCode:'.grey, response.statusCode, response.statusMessage.grey)
 
           callback(legacy.decode(body, 'cp437'))

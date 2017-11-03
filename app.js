@@ -46,6 +46,8 @@ const redditText = release => {
       ((() => {
         if (release.scrap13) {
           return (release.scrap13.storehref ? `**Buy**: ${release.scrap13.storehref}\n\n` : '')
+        } else {
+          return ''
         }
       })()) +
       (release.igdb.url ? `**IGDB**: ${release.igdb.url}\n\n` : '') + '&nbsp;\n\n'
@@ -58,8 +60,8 @@ const redditText = release => {
     }
   })()) +
   (release.info13 ? `**Layer13**: ${release.info13.href}\n\n` : '') +
-  (release.imgur ? `**NFO img**: [${release.title}.png](${release.imgur.link})` : `**NFO img**: [${release.title}.png](https://scnlog.eu/nfo?rls=${release.title})`) + '\n\n' +
-  (release.info13 ? `**NFO file**: [${release.title}.nfo](https://www.srrdb.com/release/details/${release.title})\n\n` : '') + '\n\n&nbsp;\n\n' +
+  (release.info13 ? `**srrDB**: https://www.srrdb.com/release/details/${release.title}\n\n` : '') +
+  (release.imgur ? `**NFO**: ${release.imgur.link}` : `**NFO**: https://scnlog.eu/nfo?rls=${release.title}`) + '\n\n&nbsp;\n\n' +
   `^^this ^^post ^^was ^^made ^^${release.benchmark}sec ^^after ^^pre`
 }
 
@@ -120,7 +122,9 @@ const redditPost = release => {
 
     if (!release.imgur) {
       layer13.lookup(release.title, info13 => {
-        release.info13 = info13
+        if (info13) {
+          release.info13 = info13
+        }
         checkNfo(release, 1)
       })
     }
