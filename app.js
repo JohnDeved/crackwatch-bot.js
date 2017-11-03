@@ -5,6 +5,7 @@ const Snoowrap = require('snoowrap')
 const program = require('commander')
 const igdb = require('igdb-api-node').default
 const layer13 = require('./modules/layer13')
+const srrdb = require('./modules/srrdb')
 global.CONFIG = require('./config/cfg.json')
 
 require('console-stamp')(console, {
@@ -66,24 +67,27 @@ const checkNfo = (release, count) => {
   console.log(`[${count}] (Re)checking for nfo`.grey, release.title.grey)
   layer13.scrap(release.info13.id, scrap13 => {
     release.scrap13 = scrap13
-    imgurPost(release, release => {
-      if (release.imgur) {
-        console.log('Updating Post'.green, release.title.grey)
-        release.text = redditText(release)
-        r.getSubmission(release.submission.name)
-        .edit(release.text)
-      } else {
-        if (count < 5) {
-          console.log('No nfo found; retry in 60sec'.red, release.title.grey)
+    srrdb.nfo(release.title, nfo => {
+      release.nfo = nfo
+      imgurPost(release, release => {
+        if (release.imgur) {
           console.log('Updating Post'.green, release.title.grey)
           release.text = redditText(release)
           r.getSubmission(release.submission.name)
-          .edit(release.text)
-          setTimeout(() => checkNfo(release, ++count), 60 * 1000)
+        .edit(release.text)
         } else {
-          console.log('No nfo found; timeout'.red, release.title.grey)
+          if (count < 5) {
+            console.log('No nfo found; retry in 60sec'.red, release.title.grey)
+            console.log('Updating Post'.green, release.title.grey)
+            release.text = redditText(release)
+            r.getSubmission(release.submission.name)
+          .edit(release.text)
+            setTimeout(() => checkNfo(release, ++count), 60 * 1000)
+          } else {
+            console.log('No nfo found; timeout'.red, release.title.grey)
+          }
         }
-      }
+      })
     })
   })
 }
@@ -124,19 +128,27 @@ const redditPost = release => {
 }
 
 const imgurPost = (release, callback) => {
-  if (release.scrap13) {
-    if (release.scrap13.nfo !== '') {
-      imgurUploader(text2png(release.scrap13.nfo + `\n\n\n\nnfo image rendered by\nJustSpeedy's aka JohnDev's crackwatch-bot`, CONFIG.text2png), {title: release.title}).then(data => {
-        release.imgur = data
-        console.info('Posted on Imgur'.green, release.imgur.link.grey)
-        callback(release)
-      })
-    } else {
+  if (release.nfo) {
+    imgurUploader(text2png(release.nfo + `\n\n\n\nnfo image rendered by\nJustSpeedy's aka JohnDev's crackwatch-bot`, CONFIG.text2png), {title: release.title}).then(data => {
+      release.imgur = data
+      console.info('Posted on Imgur'.green, release.imgur.link.grey)
       callback(release)
-    }
+    })
   } else {
-    console.log('skipping imgur post'.grey, release.title.grey)
-    callback(release)
+    if (release.scrap13) {
+      if (release.scrap13.nfo !== '') {
+        imgurUploader(text2png(release.scrap13.nfo + `\n\n\n\nnfo image rendered by\nJustSpeedy's aka JohnDev's crackwatch-bot`, CONFIG.text2png), {title: release.title}).then(data => {
+          release.imgur = data
+          console.info('Posted on Imgur'.green, release.imgur.link.grey)
+          callback(release)
+        })
+      } else {
+        callback(release)
+      }
+    } else {
+      console.log('skipping Imgur post'.grey, release.title.grey)
+      return callback(release)
+    }
   }
 }
 
@@ -167,14 +179,12 @@ const finalize = release => {
 }
 
 const precheck = (from, to, message) => {
-  if (from !== CONFIG.irc.sender) { return }
   message = message.replace(/[\x02\x1F\x0F\x16]|\x03(\d\d?(,\d\d?)?)?/g, '')
-  if (/^\[NFO\]- /.test(message)) { return /* console.log(message.grey) */ }
-  if (to !== CONFIG.irc.channel) { return }
-  if (/^\[ NUKE \]/.test(message)) { return }
-  if (/^\[ UNNUKE \]/.test(message)) { return }
-  if (!/\[ PRE \] \[ ?(.+) \] - ((.+)-(.+))/.test(message)) { return }
-  let [, section, title, name, group] = message.match(/\[ PRE \] \[ ?(.+) \] - ((.+)-(.+))/)
+  if (/^\[NFO\]- /.test(message)) { return console.log(message.grey) }
+  if (/^\[NUKE\]/.test(message)) { return console.log(message.red) }
+  if (/^\[UNNUKE\]/.test(message)) { return console.log(message.yellow) }
+  if (!/\[PRE\] \[?(.+)\] ((.+)-(.+))/.test(message)) { return /* console.error('msg syntax error:'.red, message) */ }
+  let [, section, title, name, group] = message.match(/\[PRE\] \[?(.+)\] ((.+)-(.+))/)
 
   let release = {
     section: section,
