@@ -13,7 +13,7 @@ const SrrDb = class {
         if ($('html') === null) { callback(); return console.error('Cheerio failed to load Html') }
         let url = $('.icon-nfo').first().parent().next().attr('href')
 
-        if (url === '' || !url) { callback(); return callback() }
+        if (url === '' || !url) { return callback() }
 
         request('https://www.srrdb.com' + url, {encoding: null}, (err, response, body) => {
           if (err) { callback(); return console.error(err) }
