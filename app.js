@@ -57,7 +57,8 @@ const redditText = release => {
     }
   })()) +
   (release.info13 ? `**Layer13**: ${release.info13.href}\n\n` : '') +
-  (release.imgur ? `**NFO file**: [${release.title}.nfo](${release.imgur.link})` : `**NFO file**: [${release.title}.nfo](https://scnlog.eu/nfo?rls=${release.title})`) + '\n\n&nbsp;\n\n' +
+  (release.imgur ? `**NFO img**: [${release.title}.png](${release.imgur.link})` : `**NFO img**: [${release.title}.png](https://scnlog.eu/nfo?rls=${release.title})`) + '\n\n' +
+  (release.info13 ? `**NFO file**: [${release.title}.nfo](https://www.srrdb.com/release/details/${release.title})\n\n` : '') + '\n\n&nbsp;\n\n' +
   `^^this ^^post ^^was ^^made ^^${release.benchmark}sec ^^after ^^pre`
 }
 
