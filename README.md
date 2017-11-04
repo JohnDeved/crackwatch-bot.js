@@ -9,6 +9,6 @@ and links to trailer and steam
 
 #### --- Update ---
 
-it has been decide that bots are nolonger allowed in the /r/crackwatch subreddit.
+it has been decide that bots that post threads are nolonger allowed in the r/crackwatch subreddit.
 
 _so long my friend_
